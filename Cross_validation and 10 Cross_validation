@@ -1,0 +1,75 @@
+import pandas  as pd
+import numpy as np 
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import accuracy_score
+from sklearn.model_selection import cross_val_score
+from collections import Counter
+from sklearn import model_selection 
+
+#data preprocessing
+#define columns name
+names=['x','y','class']
+#loading traing data set
+df=pd.read_csv("D:\datasets\concertric.csv",header=None, names=names)
+print(df.head())
+#create design matrix X and target Data y
+x=np.array(df.iloc[:,0:4])
+y=np.array(df['class'])
+
+# simple cross validation 
+#split the dataset into train and test 
+x_1,x_test,y_1,y_test=model_selection .train_test_split(x,y ,test_size=0.3,random_state=0)
+#split the train data into cross validation test and cross validation train
+x_tr,x_cv,y_tr,y_cv=model_selection.train_test_split(x_1,y_1 ,test_size=0.3)
+
+for i in range(1,30,2):
+    #instantiate learning model K=(30)
+    knn=KNeighborsClassifier(n_neighbors=i)
+    #fitting the model on cross validation test
+    knn.fit(x_tr,y_tr)
+    #predict the response of cross validation  test
+    pre=knn.predict(x_cv)
+    #evaluate CV accuracy
+    acc = accuracy_score(y_cv,pre,normalize=True)*float(100)
+    print("\nCV accuracy of K :%d is %d%%"%(i,acc))
+
+knn=KNeighborsClassifier(1) 
+knn.fit(x_tr,y_tr)
+pre=knn.predict(x_test)
+acc = accuracy_score(y_test,pre,normalize=True)*float(100)   
+print("\n**********test accuracy of K :1 is %d%%"%(acc))    
+    
+
+
+
+#10 cross validation 
+mylist=list(range(0,50))
+neighbors=list(filter(lambda x :x%2!=0,mylist))
+
+cv_score=[]
+
+for K in neighbors:
+    knn=KNeighborsClassifier(n_neighbors=K)
+    scores=cross_val_score(knn,x_tr,y_tr,cv=10 ,scoring="accuracy")
+    cv_score.append(scores.mean())
+    
+mse=[1-x for x in cv_score]
+
+optimal_k=neighbors[mse.index(min(mse))]
+print("\n the optimal number of neighbor is:%d" % optimal_k)
+
+plt.plot(neighbors,mse)
+for xy in zip(neighbors,np.round(mse,3)):
+    plt.annotate('(%s,%s)'%xy,xy=xy,textcoords='data')
+plt.xlabel('number of neighbors K')
+plt.ylabel('miscelleneous ERROR')
+plt.show()
+print("\n miscelleneous  error for each k  value is:",np.round(mse,3))
+
+knn_optimal=KNeighborsClassifier(n_neighbors=optimal_k)
+knn_optimal.fit(x_tr,y_tr)
+pre=knn_optimal.predict(x_test)
+acc=accuracy_score(y_test,pre)*100
+print("\nCV accuracy of Knn classifier for k is :%d is %f%%" %(optimal_k,acc))
